@@ -221,12 +221,14 @@ class FilterContainer extends HTMLElement {
       needle = [needle];
     }
 
-    const matcher = (val) => matchMode === 'exact' ? val === lookingFor : val.toLowerCase().includes(lookingFor.toLowerCase());
+    const matcher = (lookingFor) => {
+      return (val) => matchMode === 'exact' ? val === lookingFor : val.toLowerCase().includes(lookingFor.toLowerCase())
+    };
     // all must match    
     if(mode === "all") {
       let found = true;
       for(let lookingFor of haystack) {
-        if(!needle.some(matcher)) {
+        if(!needle.some(matcher(lookingFor))) {
           found = false;
         }
       }
@@ -235,7 +237,7 @@ class FilterContainer extends HTMLElement {
 
     for(let lookingFor of needle) {
       // has any, return true
-      if(haystack.some(matcher)) {
+      if(haystack.some(matcher(lookingFor))) {
         return true;
       }
     }
