@@ -4,6 +4,7 @@ class FilterContainer extends HTMLElement {
     valueDelimiter: "delimiter",
     leaveUrlAlone: "leave-url-alone",
     mode: "filter-mode",
+    matchMode: "filter-match-mode",
     bind: "data-filter-key",
     results: "data-filter-results",
     resultsExclude: "data-filter-results-exclude",
@@ -104,6 +105,23 @@ class FilterContainer extends HTMLElement {
     return this.modes[key];
   }
 
+  getMatchMode(key) {
+    if(!this.matchModes) {
+      this.matchModes = {};
+    }
+    if(!this.matchModes[key]) {
+      this.matchModes[key] = this.getAttribute(`${FilterContainer.attrs.matchMode}-${key}`);
+    }
+    if(!this.matchModes[key]) {
+      if(!this.globalMatchMode) {
+        this.globalMatchMode = this.getAttribute(FilterContainer.attrs.matchMode);
+      }
+      return this.globalMatchMode;
+    }
+
+    return this.matchModes[key];
+  }
+
   bindEvents() {
     this.addEventListener("input", e => {
       let closest = e.target.closest(`[${FilterContainer.attrs.bind}]`);
@@ -194,7 +212,7 @@ class FilterContainer extends HTMLElement {
     this._applyMapForKey(key, map);
   }
 
-  _hasValue(needle, haystack = [], mode = "any") {
+  _hasValue(needle, haystack = [], mode = "any", matchMode = "strict") {
     if(!haystack || !haystack.length || !Array.isArray(haystack)) {
       return false;
     }
@@ -203,11 +221,12 @@ class FilterContainer extends HTMLElement {
       needle = [needle];
     }
 
-    // all must match
+    const matcher = (val) => matchMode === 'exact' ? val === lookingFor : val.toLowerCase().includes(lookingFor.toLowerCase());
+    // all must match    
     if(mode === "all") {
       let found = true;
       for(let lookingFor of haystack) {
-        if(!needle.some((val) => val === lookingFor)) {
+        if(!needle.some(matcher)) {
           found = false;
         }
       }
@@ -216,7 +235,7 @@ class FilterContainer extends HTMLElement {
 
     for(let lookingFor of needle) {
       // has any, return true
-      if(haystack.some((val) => val === lookingFor)) {
+      if(haystack.some(matcher)) {
         return true;
       }
     }
@@ -231,7 +250,8 @@ class FilterContainer extends HTMLElement {
     let haystack = (element.getAttribute(attributeName) || "").split(this.valueDelimiter);
     let key = this.getKeyFromAttributeName(attributeName);
     let mode = this.getFilterMode(key);
-    if(hasAttr && this._hasValue(haystack, values, mode)) {
+    let matchMode = this.getMatchMode(key);
+    if(hasAttr && this._hasValue(haystack, values, mode, matchMode)) {
       return true;
     }
     return false;
